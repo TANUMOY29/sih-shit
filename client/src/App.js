@@ -28,7 +28,7 @@ function RequireAuth({ session, profile, role, children }) {
 function App() {
     const [session, setSession] = useState(null);
     const [profile, setProfile] = useState(null);
-    // const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -46,7 +46,9 @@ function App() {
             subscription.unsubscribe();
         };
     }, []);
-
+ if (loading) {
+        return <div>Loading Application...</div>;
+    }
    
 
     return (
