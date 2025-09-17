@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate, Outlet } from 'react-router-dom';
+import { Button, Navbar, Nav, Container } from 'react-bootstrap';
 
 // Import all your page components
 import Login from './components/Login';
@@ -20,32 +21,24 @@ function App() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // This is the official, stable way to handle auth and profile loading
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             setSession(session);
             if (session) {
-                // Only fetch profile if there is a session
                 const { data } = await supabase.from('tourists').select('role').eq('id', session.user.id).single();
                 setProfile(data);
             } else {
-                // If there's no session, clear the profile
                 setProfile(null);
             }
-            // IMPORTANT: Only stop loading after all async operations are done
             setLoading(false);
         });
 
-        return () => {
-            subscription.unsubscribe();
-        };
+        return () => subscription.unsubscribe();
     }, []);
 
-    // This is the key fix: We show the loading screen until the initial check is complete.
     if (loading) {
         return <div>Loading Application...</div>;
     }
 
-    // After loading, this logic decides where to go
     return (
         <BrowserRouter>
             <Routes>
@@ -56,8 +49,8 @@ function App() {
                 {/* Protected Admin Route */}
                 <Route path="/admin" element={session && profile?.role === 'admin' ? <AdminDashboard session={session} /> : <Navigate to="/" />} />
 
-                {/* Protected User Routes */}
-                <Route path="/dashboard" element={session && profile?.role === 'user' ? <AppLayout /> : <Navigate to="/" />}>
+                {/* THE KEY FIX IS HERE: We now check if the role is NOT admin */}
+                <Route path="/dashboard" element={session && profile?.role !== 'admin' ? <AppLayout /> : <Navigate to="/" />}>
                     <Route index element={<DashboardHome session={session} />} />
                     <Route path="account" element={<MyAccount session={session} />} />
                     <Route path="geofencing" element={<Geofencing session={session} />} />
@@ -71,7 +64,7 @@ function App() {
                     (profile?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />)
                 } />
 
-                {/* A final catch-all to prevent 404 errors on initial load */}
+                {/* A final catch-all to prevent errors */}
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </BrowserRouter>
