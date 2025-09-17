@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { Button, Navbar, Nav, Container } from 'react-bootstrap';
 import { supabase } from '../supabaseClient';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function AppLayout() {
     const navigate = useNavigate();
@@ -8,28 +9,38 @@ export default function AppLayout() {
         await supabase.auth.signOut();
         navigate('/login');
     };
-    return (
-        <div>
-            <Navbar bg="light" expand="lg" className="border-bottom shadow-sm">
-                <Container fluid>
-                    <Navbar.Brand as={Link} to="/dashboard">🛡️ Travel Shield</Navbar.Brand>
-                    <Navbar.Toggle aria-controls="basic-navbar-nav" />
-                    <Navbar.Collapse id="basic-navbar-nav">
-                        <Nav className="me-auto">
-                            <Nav.Link as={Link} to="/dashboard/geofencing">Geofencing</Nav.Link>
-                            <Nav.Link as={Link} to="/dashboard/digital-id">Digital ID</Nav.Link>
-                            <Nav.Link as={Link} to="/dashboard/about">About Us</Nav.Link>
-                        </Nav>
-                        <Nav>
-                            <Nav.Link as={Link} to="/dashboard/account">My Account</Nav.Link>
-                            <Button variant="outline-secondary" size="sm" onClick={handleSignOut}>Sign Out</Button>
-                        </Nav>
-                    </Navbar.Collapse>
-                </Container>
-            </Navbar>
-            <main className="container mt-4">
-                <Outlet />
-            </main>
-        </div>
-    );
+    // Inside your AppLayout.js component...
+
+return (
+    <div>
+        <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
+            <Container>
+                <Navbar.Brand as={Link} to="/">🛡️ Travel Shield</Navbar.Brand>
+                <Navbar.Toggle aria-controls="responsive-navbar-nav" />
+                <Navbar.Collapse id="responsive-navbar-nav" className="justify-content-end">
+                    <Nav className="align-items-center"> {/* Added align-items-center for better looks */}
+                        
+                        {/* THIS IS THE NEW PART */}
+                        <LanguageSwitcher />
+                        {/* END OF NEW PART */}
+
+                        {session && profile && (
+                            <NavDropdown title={profile.full_name || 'Account'} id="collasible-nav-dropdown" className="ms-2">
+                                <NavDropdown.Item as={Link} to="/my-account">My Account</NavDropdown.Item>
+                                <NavDropdown.Divider />
+                                <NavDropdown.Item onClick={handleLogout}>
+                                    Logout
+                                </NavDropdown.Item>
+                            </NavDropdown>
+                        )}
+                    </Nav>
+                </Navbar.Collapse>
+            </Container>
+        </Navbar>
+
+        <Container className="mt-4">
+            <Outlet /> {/* This renders the actual page content */}
+        </Container>
+    </div>
+);
 }

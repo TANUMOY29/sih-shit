@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Button, Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next'; // Import the hook
 
 export default function SignUp() {
+    const { t } = useTranslation(); // Initialize the hook
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [step, setStep] = useState(1); // 1: Aadhar, 2: OTP, 3: Profile Details
+    const [step, setStep] = useState(1);
     
-    // State for all form fields
     const [aadhar, setAadhar] = useState('');
     const [otpInput, setOtpInput] = useState('');
     const [email, setEmail] = useState('');
@@ -16,30 +17,23 @@ export default function SignUp() {
     const [fullName, setFullName] = useState('');
     const [dob, setDob] = useState('');
 
-    // State to hold temporary data between steps
     const [generatedOtp, setGeneratedOtp] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
 
     const navigate = useNavigate();
-    
-    // --- DIAGNOSTIC LOG ---
-    // This will tell us which form is supposed to be showing.
-    console.log("Current step state is:", step);
-    // --------------------
 
-    // Step 1: Send the OTP
     const handleSendOtp = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         try {
             const { data, error } = await supabase.from('aadhar_records').select('phone_number').eq('aadhar_number', aadhar).single();
-            if (error || !data) throw new Error("This Aadhar number is not in our records.");
+            if (error || !data) throw new Error(t('aadharNotFoundError'));
             
             setPhoneNumber(data.phone_number);
             const fakeOtp = Math.floor(100000 + Math.random() * 900000).toString();
             setGeneratedOtp(fakeOtp);
-            alert(`FOR DEMO PURPOSES, your OTP is: ${fakeOtp}`);
+            alert(t('demoOtpAlert', { otp: fakeOtp })); // Translated alert
             setStep(2);
         } catch (error) {
             setError(error.message);
@@ -48,17 +42,15 @@ export default function SignUp() {
         }
     };
 
-    // Step 2: Verify the OTP
     const handleVerifyOtp = (e) => {
         e.preventDefault();
         if (otpInput !== generatedOtp) {
-            return setError("Incorrect OTP. Please try again.");
+            return setError(t('incorrectOtpError')); // Translated error
         }
         setError('');
-        setStep(3); // Move to the final profile details step
+        setStep(3);
     };
 
-    // Step 3: Create the user with all details
     const handleFinalSignUp = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -80,11 +72,11 @@ export default function SignUp() {
                     phone: phoneNumber,
                     aadhar_number: aadhar,
                     role: 'user'
-                }).select(); // Added .select() to ensure RLS is handled
+                }).select();
                 if (profileError) throw profileError;
             }
 
-            alert('Signup successful! A confirmation link has been sent to your email. Please verify and then log in.');
+            alert(t('signupSuccessAlert')); // Translated alert
             navigate('/login');
 
         } catch (error) {
@@ -102,43 +94,39 @@ export default function SignUp() {
                         <Card.Body>
                             <div className="text-center mb-4">
                                 <h2>🛡️ Travel Shield</h2>
-                                <p className="text-muted">Create Your Account</p>
+                                <p className="text-muted">{t('createAccountTitle')}</p>
                             </div>
                             {error && <Alert variant="danger">{error}</Alert>}
                             
-                            {/* --- MORE DIRECT RENDERING LOGIC --- */}
-                            
                             {step === 1 && (
                                 <Form onSubmit={handleSendOtp}>
-                                    <Form.Group className="mb-3" controlId="formAadhar"><Form.Label>Aadhar Number</Form.Label><Form.Control type="text" placeholder="Enter your 12-digit Aadhar" value={aadhar} onChange={e => setAadhar(e.target.value)} required minLength="12" maxLength="12" /></Form.Group>
-                                    <div className="d-grid mt-4"><Button variant="primary" size="lg" type="submit" disabled={loading}>{loading ? <Spinner as="span" animation="border" size="sm" /> : 'Send OTP'}</Button></div>
+                                    <Form.Group className="mb-3" controlId="formAadhar"><Form.Label>{t('aadharNumberLabel')}</Form.Label><Form.Control type="text" placeholder={t('aadharPlaceholder')} value={aadhar} onChange={e => setAadhar(e.target.value)} required minLength="12" maxLength="12" /></Form.Group>
+                                    <div className="d-grid mt-4"><Button variant="primary" size="lg" type="submit" disabled={loading}>{loading ? <Spinner as="span" animation="border" size="sm" /> : t('sendOtpButton')}</Button></div>
                                 </Form>
                             )}
 
                             {step === 2 && (
                                 <Form onSubmit={handleVerifyOtp}>
-                                    <p>An OTP was generated for your Aadhar number. Please enter it below.</p>
-                                    <Form.Group className="mb-3" controlId="formOtp"><Form.Label>OTP</Form.Label><Form.Control type="text" placeholder="Enter 6-digit OTP" value={otpInput} onChange={e => setOtpInput(e.target.value)} required minLength="6" maxLength="6" /></Form.Group>
-                                    <div className="d-grid mt-4"><Button variant="success" size="lg" type="submit">Verify OTP</Button></div>
+                                    <p>{t('otpGeneratedMessage')}</p>
+                                    <Form.Group className="mb-3" controlId="formOtp"><Form.Label>{t('otpLabel')}</Form.Label><Form.Control type="text" placeholder={t('otpPlaceholder')} value={otpInput} onChange={e => setOtpInput(e.target.value)} required minLength="6" maxLength="6" /></Form.Group>
+                                    <div className="d-grid mt-4"><Button variant="success" size="lg" type="submit">{t('verifyOtpButton')}</Button></div>
                                 </Form>
                             )}
 
                             {step === 3 && (
                                 <Form onSubmit={handleFinalSignUp}>
-                                    <p className="text-success">✓ Aadhar Verified!</p>
+                                    <p className="text-success">{t('aadharVerified')}</p>
                                     <hr/>
-                                    <Form.Group className="mb-3" controlId="formFullName"><Form.Label>Full Name</Form.Label><Form.Control type="text" placeholder="Enter your full name" value={fullName} onChange={e => setFullName(e.target.value)} required /></Form.Group>
-                                    <Form.Group className="mb-3" controlId="formEmail"><Form.Label>Email Address</Form.Label><Form.Control type="email" placeholder="Enter email" value={email} onChange={e => setEmail(e.target.value)} required /></Form.Group>
-                                    <Form.Group className="mb-3" controlId="formPassword"><Form.Label>Password</Form.Label><Form.Control type="password" placeholder="Create a password" value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
-                                    <Form.Group className="mb-3" controlId="formDob"><Form.Label>Date of Birth</Form.Label><Form.Control type="date" value={dob} onChange={e => setDob(e.target.value)} required /></Form.Group>
-                                    <div className="d-grid mt-4"><Button variant="primary" size="lg" type="submit" disabled={loading}>{loading ? <Spinner as="span" animation="border" size="sm" /> : 'Complete Sign Up'}</Button></div>
+                                    <Form.Group className="mb-3" controlId="formFullName"><Form.Label>{t('fullNameLabel')}</Form.Label><Form.Control type="text" placeholder={t('fullNamePlaceholder')} value={fullName} onChange={e => setFullName(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3" controlId="formEmail"><Form.Label>{t('emailLabel')}</Form.Label><Form.Control type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3" controlId="formPassword"><Form.Label>{t('passwordLabel')}</Form.Label><Form.Control type="password" placeholder={t('passwordPlaceholder')} value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3" controlId="formDob"><Form.Label>{t('dobLabel')}</Form.Label><Form.Control type="date" value={dob} onChange={e => setDob(e.target.value)} required /></Form.Group>
+                                    <div className="d-grid mt-4"><Button variant="primary" size="lg" type="submit" disabled={loading}>{loading ? <Spinner as="span" animation="border" size="sm" /> : t('completeSignUpButton')}</Button></div>
                                 </Form>
                             )}
                             
-                            {/* ------------------------------------- */}
-                            
                             <div className="mt-3 text-center">
-                                <small>Already have an account? <Link to="/login">Login</Link></small>
+                                <small>{t('alreadyHaveAccount')} <Link to="/login">{t('loginLink')}</Link></small>
                             </div>
                         </Card.Body>
                     </Card>
