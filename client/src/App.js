@@ -1,10 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate, Outlet } from 'react-router-dom';
-import { Button, Navbar, Nav, Container } from 'react-bootstrap';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-// Import all your page components
+// Import all page components
 import Login from './components/Login';
 import SignUp from './components/signup';
 import AppLayout from './components/AppLayout';
@@ -14,6 +13,17 @@ import DigitalId from './components/DigitalId';
 import AboutUs from './components/AboutUs';
 import AdminDashboard from './components/AdminDashboard';
 import DashboardHome from './components/DashBoardHome';
+
+// A special component to protect routes and check roles
+function RequireAuth({ session, profile, role, children }) {
+    if (!session) {
+        return <Navigate to="/login" />;
+    }
+    if (profile && profile.role !== role) {
+        return <Navigate to="/" />;
+    }
+    return children;
+}
 
 function App() {
     const [session, setSession] = useState(null);
@@ -32,7 +42,9 @@ function App() {
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     if (loading) {
@@ -42,15 +54,23 @@ function App() {
     return (
         <BrowserRouter>
             <Routes>
-                {/* Public Routes: only show if NOT logged in */}
-                <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
-                <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/" />} />
+                {/* Public Routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<SignUp />} />
 
                 {/* Protected Admin Route */}
-                <Route path="/admin" element={session && profile?.role === 'admin' ? <AdminDashboard session={session} /> : <Navigate to="/" />} />
+                <Route path="/admin" element={
+                    <RequireAuth session={session} profile={profile} role="admin">
+                        <AdminDashboard session={session} />
+                    </RequireAuth>
+                }/>
 
-                {/* THE KEY FIX IS HERE: We now check if the role is NOT admin */}
-                <Route path="/dashboard" element={session && profile?.role !== 'admin' ? <AppLayout /> : <Navigate to="/" />}>
+                {/* Protected User Routes */}
+                <Route path="/dashboard" element={
+                    <RequireAuth session={session} profile={profile} role="user">
+                        <AppLayout />
+                    </RequireAuth>
+                }>
                     <Route index element={<DashboardHome session={session} />} />
                     <Route path="account" element={<MyAccount session={session} />} />
                     <Route path="geofencing" element={<Geofencing session={session} />} />
@@ -58,14 +78,11 @@ function App() {
                     <Route path="about" element={<AboutUs />} />
                 </Route>
                 
-                {/* Default redirector: This is the main traffic controller */}
+                {/* Default redirector */}
                 <Route path="/" element={
                     !session ? <Navigate to="/login" /> : 
                     (profile?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />)
                 } />
-
-                {/* A final catch-all to prevent errors */}
-                <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </BrowserRouter>
     );
