@@ -19,7 +19,6 @@ export default function MyAccount() {
             if (user) {
                 setUser(user);
                 try {
-                    // Fetch all fields now, including the new ones
                     const { data, error } = await supabase
                         .from('tourists')
                         .select('*')
@@ -72,12 +71,15 @@ export default function MyAccount() {
         );
     }
 
+    if (error) {
+        return <Alert variant="danger">{error}</Alert>;
+    }
+
     return (
         <Container>
             <Card className="p-4 shadow-sm">
                 <Card.Body>
                     <h2 className="text-center mb-4">{t('myAccountTitle', 'My Account')}</h2>
-                    {error && <Alert variant="danger">{error}</Alert>}
                     {message && <Alert variant="success">{message}</Alert>}
                     
                     {profile && (
