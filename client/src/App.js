@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-// Import all page components
+// Import all your page components
 import Login from './components/Login';
 import SignUp from './components/signup';
 import AppLayout from './components/AppLayout';
@@ -14,74 +14,50 @@ import AboutUs from './components/AboutUs';
 import AdminDashboard from './components/AdminDashboard';
 import DashboardHome from './components/DashBoardHome';
 
-// A special component to protect routes
-function RequireAuth({ session, children }) {
-    if (!session) {
-        return <Navigate to="/login" />;
-    }
-    return children;
-}
-
 function App() {
     const [session, setSession] = useState(null);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        console.log("App.js: useEffect started.");
-
+        // This is the official, stable way to handle auth and profile loading
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log(`App.js: onAuthStateChange fired with event: ${event}`);
-            try {
-                setSession(session);
-                if (session) {
-                    console.log("App.js: Session found. Fetching profile...");
-                    const { data, error } = await supabase.from('tourists').select('role').eq('id', session.user.id).single();
-                    if (error) throw error;
-                    setProfile(data);
-                    console.log("App.js: Profile fetched successfully.", data);
-                } else {
-                    setProfile(null);
-                    console.log("App.js: No session, profile set to null.");
-                }
-            } catch (error) {
-                console.error("App.js: Error during auth state change processing:", error);
-            } finally {
-                setLoading(false);
-                console.log("App.js: Loading set to false.");
+            setSession(session);
+            if (session) {
+                // Only fetch profile if there is a session
+                const { data } = await supabase.from('tourists').select('role').eq('id', session.user.id).single();
+                setProfile(data);
+            } else {
+                // If there's no session, clear the profile
+                setProfile(null);
             }
+            // IMPORTANT: Only stop loading after all async operations are done
+            setLoading(false);
         });
 
         return () => {
-            console.log("App.js: Unsubscribing from auth changes.");
             subscription.unsubscribe();
         };
     }, []);
 
+    // This is the key fix: We show the loading screen until the initial check is complete.
     if (loading) {
         return <div>Loading Application...</div>;
     }
 
+    // After loading, this logic decides where to go
     return (
         <BrowserRouter>
             <Routes>
-                {/* Public Routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<SignUp />} />
+                {/* Public Routes: only show if NOT logged in */}
+                <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
+                <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/" />} />
 
                 {/* Protected Admin Route */}
-                <Route path="/admin" element={
-                    <RequireAuth session={session}>
-                        {profile?.role === 'admin' ? <AdminDashboard session={session} /> : <Navigate to="/" />}
-                    </RequireAuth>
-                }/>
+                <Route path="/admin" element={session && profile?.role === 'admin' ? <AdminDashboard session={session} /> : <Navigate to="/" />} />
 
                 {/* Protected User Routes */}
-                <Route path="/dashboard" element={
-                    <RequireAuth session={session}>
-                        <AppLayout />
-                    </RequireAuth>
-                }>
+                <Route path="/dashboard" element={session && profile?.role === 'user' ? <AppLayout /> : <Navigate to="/" />}>
                     <Route index element={<DashboardHome session={session} />} />
                     <Route path="account" element={<MyAccount session={session} />} />
                     <Route path="geofencing" element={<Geofencing session={session} />} />
@@ -89,11 +65,14 @@ function App() {
                     <Route path="about" element={<AboutUs />} />
                 </Route>
                 
-                {/* Default redirector */}
+                {/* Default redirector: This is the main traffic controller */}
                 <Route path="/" element={
                     !session ? <Navigate to="/login" /> : 
                     (profile?.role === 'admin' ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />)
                 } />
+
+                {/* A final catch-all to prevent 404 errors on initial load */}
+                <Route path="*" element={<Navigate to="/" />} />
             </Routes>
         </BrowserRouter>
     );
