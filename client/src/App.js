@@ -4,7 +4,8 @@ import SignUp from './components/signup';
 import DashboardHome from './components/DashBoardHome';
 import MyAccount from './components/MyAccount';
 import AppLayout from './components/AppLayout';
-import Geofencing from './components/Geofencing';
+import PublicLayout from './components/PublicLayout'; // Import new layout
+import Geofencing from './components/Geofencing'; 
 import AboutUs from './components/AboutUs';
 import DigitalId from './components/DigitalId';
 
@@ -12,7 +13,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* These routes will have the main navbar */}
+        {/* Routes with the main, protected layout */}
         <Route path="/" element={<AppLayout />}>
           <Route index element={<DashboardHome />} />
           <Route path="my-account" element={<MyAccount />} />
@@ -21,9 +22,11 @@ function App() {
           <Route path="about-us" element={<AboutUs />} />
         </Route>
 
-        {/* These routes are standalone */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
+        {/* Routes with the public layout (for login/signup) */}
+        <Route element={<PublicLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+        </Route>
       </Routes>
     </Router>
   );
