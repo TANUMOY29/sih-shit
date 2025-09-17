@@ -11,7 +11,7 @@ const containerStyle = {
 const libraries = ['places'];
 
 export default function MapView() {
-    const GOOGLE_MAPS_API_KEY = "AIzaSyB86YsYHWkL1WgiqtuM_dMpTori_VBZMTw";
+    const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
     const [map, setMap] = useState(null);
     const [center, setCenter] = useState({ lat: 22.5726, lng: 88.3639 }); // Default to Kolkata
