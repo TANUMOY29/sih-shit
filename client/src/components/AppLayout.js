@@ -13,34 +13,45 @@ export default function AppLayout() {
 
     useEffect(() => {
         const fetchProfile = async (user) => {
-            // THE FINAL, DEFINITIVE FIX IS HERE:
-            if (!user) return; // If no user object is provided, exit the function.
+            // This is the safety check. If for any reason the user object is not valid, it will not proceed.
+            if (!user) {
+                setProfile(null);
+                return;
+            }
             try {
                 const { data, error } = await supabase.from('tourists').select('full_name').eq('id', user.id).single();
                 if (error) throw error;
                 setProfile(data);
             } catch (error) {
                 console.error('Error fetching profile:', error.message);
+                setProfile(null); // Clear profile on error
             }
         };
 
+        // This single listener is the only source of truth for authentication
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session) {
+                // If a session exists, we are authenticated. Now fetch the profile.
                 await fetchProfile(session.user);
             } else {
+                // If no session, the user is not logged in. Redirect them.
                 navigate('/login');
             }
+            // We are done checking, so we can stop loading.
             setLoading(false);
         });
 
+        // Cleanup the listener when the component is no longer on screen
         return () => subscription.unsubscribe();
     }, [navigate]);
 
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
-        navigate('/login');
+        // The onAuthStateChange listener will automatically handle the redirect to the login page.
     };
 
+    // While we are checking if the user is logged in, show a full-page spinner.
     if (loading) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
@@ -49,6 +60,7 @@ export default function AppLayout() {
         );
     }
 
+    // This is the main layout, which will only be shown AFTER loading is false AND a session was found.
     return (
         <div>
             <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
@@ -70,7 +82,8 @@ export default function AppLayout() {
                                     <NavDropdown.Item onClick={handleLogout}>{t('logoutButton', 'Logout')}</NavDropdown.Item>
                                 </NavDropdown>
                             ) : (
-                                <Nav.Link as={Link} to="/login">{t('loginLink', 'Login')}</Nav.Link>
+                                // This is a fallback for the brief moment before profile loads
+                                <Spinner animation="border" variant="light" size="sm" className="ms-2" />
                             )}
                         </Nav>
                     </Navbar.Collapse>

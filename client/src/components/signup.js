@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Button, Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next'; // Import the hook
+import { useTranslation } from 'react-i18next';
 
 export default function SignUp() {
-    const { t } = useTranslation(); // Initialize the hook
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [step, setStep] = useState(1);
@@ -16,10 +16,11 @@ export default function SignUp() {
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [dob, setDob] = useState('');
+    const [gender, setGender] = useState('');
+    const [address, setAddress] = useState('');
 
     const [generatedOtp, setGeneratedOtp] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
-
     const navigate = useNavigate();
 
     const handleSendOtp = async (e) => {
@@ -33,7 +34,7 @@ export default function SignUp() {
             setPhoneNumber(data.phone_number);
             const fakeOtp = Math.floor(100000 + Math.random() * 900000).toString();
             setGeneratedOtp(fakeOtp);
-            alert(t('demoOtpAlert', { otp: fakeOtp })); // Translated alert
+            alert(t('demoOtpAlert', { otp: fakeOtp }));
             setStep(2);
         } catch (error) {
             setError(error.message);
@@ -44,9 +45,7 @@ export default function SignUp() {
 
     const handleVerifyOtp = (e) => {
         e.preventDefault();
-        if (otpInput !== generatedOtp) {
-            return setError(t('incorrectOtpError')); // Translated error
-        }
+        if (otpInput !== generatedOtp) return setError(t('incorrectOtpError'));
         setError('');
         setStep(3);
     };
@@ -71,12 +70,14 @@ export default function SignUp() {
                     dob: dob,
                     phone: phoneNumber,
                     aadhar_number: aadhar,
+                    gender: gender,
+                    address: address,
                     role: 'user'
                 }).select();
                 if (profileError) throw profileError;
             }
 
-            alert(t('signupSuccessAlert')); // Translated alert
+            alert(t('signupSuccessAlert'));
             navigate('/login');
 
         } catch (error) {
@@ -117,10 +118,23 @@ export default function SignUp() {
                                 <Form onSubmit={handleFinalSignUp}>
                                     <p className="text-success">{t('aadharVerified')}</p>
                                     <hr/>
-                                    <Form.Group className="mb-3" controlId="formFullName"><Form.Label>{t('fullNameLabel')}</Form.Label><Form.Control type="text" placeholder={t('fullNamePlaceholder')} value={fullName} onChange={e => setFullName(e.target.value)} required /></Form.Group>
-                                    <Form.Group className="mb-3" controlId="formEmail"><Form.Label>{t('emailLabel')}</Form.Label><Form.Control type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} required /></Form.Group>
-                                    <Form.Group className="mb-3" controlId="formPassword"><Form.Label>{t('passwordLabel')}</Form.Label><Form.Control type="password" placeholder={t('passwordPlaceholder')} value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
-                                    <Form.Group className="mb-3" controlId="formDob"><Form.Label>{t('dobLabel')}</Form.Label><Form.Control type="date" value={dob} onChange={e => setDob(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3"><Form.Label>{t('fullNameLabel')}</Form.Label><Form.Control type="text" placeholder={t('fullNamePlaceholder')} value={fullName} onChange={e => setFullName(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3"><Form.Label>{t('emailLabel')}</Form.Label><Form.Control type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3"><Form.Label>{t('passwordLabel')}</Form.Label><Form.Control type="password" placeholder={t('passwordPlaceholder')} value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3"><Form.Label>{t('dobLabel')}</Form.Label><Form.Control type="date" value={dob} onChange={e => setDob(e.target.value)} required /></Form.Group>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Gender</Form.Label>
+                                        <Form.Select value={gender} onChange={e => setGender(e.target.value)} required>
+                                            <option value="">Select Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </Form.Select>
+                                    </Form.Group>
+                                    <Form.Group className="mb-3">
+                                        <Form.Label>Address</Form.Label>
+                                        <Form.Control as="textarea" rows={3} placeholder="Enter your full address" value={address} onChange={e => setAddress(e.target.value)} required />
+                                    </Form.Group>
                                     <div className="d-grid mt-4"><Button variant="primary" size="lg" type="submit" disabled={loading}>{loading ? <Spinner as="span" animation="border" size="sm" /> : t('completeSignUpButton')}</Button></div>
                                 </Form>
                             )}

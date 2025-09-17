@@ -1,28 +1,56 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Form, Button, Container, Row, Col, Card, Alert } from 'react-bootstrap';
+import { Form, Button, Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 
-export default function DigitalId({ session }) {
+export default function DigitalId() {
+    const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState(null);
+    const [sessionUser, setSessionUser] = useState(null);
     const [isActive, setIsActive] = useState(false);
     const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        const fetchUserAndProfile = async () => {
             setLoading(true);
-            const { user } = session;
-            let { data, error } = await supabase.from('tourists').select('*').eq('id', user.id).single();
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-            if (error) console.warn(error);
-            else if (data) {
-                setProfile(data);
-                checkIfActive(data.trip_start_date, data.trip_end_date);
+            if (userError || !user) {
+                setError("You must be logged in to view this page.");
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+            
+            setSessionUser(user);
+
+            try {
+                let { data, error } = await supabase.from('tourists').select('*').eq('id', user.id).single();
+
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+
+                if (data) {
+                    setProfile(data);
+                    checkIfActive(data.trip_start_date, data.trip_end_date);
+                } else {
+                    setProfile({
+                        full_name: user.user_metadata?.full_name || user.email,
+                        trip_start_date: '',
+                        trip_end_date: ''
+                    });
+                }
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
         };
-        fetchProfile();
-    }, [session]);
+
+        fetchUserAndProfile();
+    }, []);
 
     const checkIfActive = (startDate, endDate) => {
         if (!startDate || !endDate) return setIsActive(false);
@@ -39,10 +67,16 @@ export default function DigitalId({ session }) {
         e.preventDefault();
         setLoading(true);
         setMessage('');
-        const { user } = session;
         
+        if (!profile.trip_start_date || !profile.trip_end_date) {
+            setMessage('Error: Both start and end dates must be selected.');
+            setLoading(false);
+            return;
+        }
+
         const updates = {
-            id: user.id,
+            id: sessionUser.id,
+            full_name: profile.full_name,
             trip_start_date: profile.trip_start_date,
             trip_end_date: profile.trip_end_date,
             updated_at: new Date()
@@ -63,12 +97,18 @@ export default function DigitalId({ session }) {
         setProfile({ ...profile, [e.target.name]: e.target.value });
     };
 
-    if (loading && !profile) return <p>Loading Digital ID...</p>;
+    if (loading) {
+        return <p>Loading Digital ID...</p>;
+    }
+
+    if (error) {
+        return <Alert variant="danger">{error}</Alert>
+    }
 
     return (
         <Container>
-            <Row>
-                <Col md={7}>
+            <Row className="justify-content-center">
+                <Col md={7} className="mb-4">
                     <Card className="p-4">
                         <Card.Body>
                             <h2 className="mb-4">Activate Your Digital ID</h2>
@@ -77,16 +117,16 @@ export default function DigitalId({ session }) {
                             <Form onSubmit={handleDateUpdate}>
                                 <Form.Group className="mb-3">
                                     <Form.Label>Full Name (from account)</Form.Label>
-                                    <Form.Control type="text" value={profile?.full_name || ''} readOnly />
+                                    <Form.Control type="text" value={profile.full_name || ''} readOnly disabled />
                                 </Form.Group>
                                 <Row>
                                     <Form.Group as={Col} controlId="trip_start_date">
                                         <Form.Label>Trip Start Date</Form.Label>
-                                        <Form.Control type="date" name="trip_start_date" value={profile?.trip_start_date || ''} onChange={handleChange} />
+                                        <Form.Control type="date" name="trip_start_date" value={profile.trip_start_date || ''} onChange={handleChange} required />
                                     </Form.Group>
                                     <Form.Group as={Col} controlId="trip_end_date">
                                         <Form.Label>Trip End Date</Form.Label>
-                                        <Form.Control type="date" name="trip_end_date" value={profile?.trip_end_date || ''} onChange={handleChange} />
+                                        <Form.Control type="date" name="trip_end_date" value={profile.trip_end_date || ''} onChange={handleChange} required />
                                     </Form.Group>
                                 </Row>
                                 <Button className="mt-3" variant="primary" type="submit" disabled={loading}>
@@ -102,13 +142,13 @@ export default function DigitalId({ session }) {
                             ID Status: {isActive ? 'ACTIVE' : 'INACTIVE'}
                         </Card.Header>
                         <Card.Body className="p-4">
-                            <Card.Title className="h5">{profile?.full_name}</Card.Title>
+                            <Card.Title className="h5">{profile.full_name}</Card.Title>
                             <Card.Text>
                                 <strong>Unique ID:</strong><br/>
-                                <small className="text-muted">{session.user.id}</small>
+                                <small className="text-muted">{sessionUser.id}</small>
                                 <hr/>
                                 <strong>Trip Duration:</strong><br/>
-                                {profile?.trip_start_date || 'N/A'} to {profile?.trip_end_date || 'N/A'}
+                                {profile.trip_start_date || 'N/A'} to {profile.trip_end_date || 'N/A'}
                             </Card.Text>
                         </Card.Body>
                     </Card>
