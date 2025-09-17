@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../supabaseClient';
+// import { supabase } from '../supabaseClient'; // REMOVED THIS UNUSED IMPORT
 import { useNavigate, Link } from 'react-router-dom';
 import { Form, Button, Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
 
@@ -19,20 +19,12 @@ export default function SignUp() {
         setMessage('');
 
         // For the demo, we will log the OTP to the console.
-        // In a real app, an Edge Function would send an SMS via Twilio.
         const demoOtp = Math.floor(100000 + Math.random() * 900000).toString();
         console.log(`DEMO OTP for ${aadhar} is: ${demoOtp}`);
         setMessage(`An OTP has been sent (check the console).`);
         
-        // You would replace the above with a call to a Supabase Edge Function
-        // const { data, error } = await supabase.functions.invoke('send-otp', {
-        //   body: { aadharNumber: aadhar },
-        // });
-        // if (error) setError(error.message);
-        // else {
-        //   setMessage('An OTP has been sent to the linked mobile number.');
-        //   setStep(2);
-        // }
+        // In a real app, an Edge Function would be called here.
+        // const { data, error } = await supabase.functions.invoke('send-otp', { ... });
 
         setStep(2); // Move to OTP step for the demo
         setLoading(false);
@@ -43,20 +35,12 @@ export default function SignUp() {
         setLoading(true);
         setError('');
         
-        // Here you would call an Edge Function to verify the OTP
-        // and create the user on the backend.
-        // const { data, error } = await supabase.functions.invoke('verify-otp', {
-        //   body: { aadharNumber: aadhar, otpCode: otp },
-        // });
-        // if (error) setError(error.message);
-        // else {
-        //   alert('Signup successful! Please log in.');
-        //   navigate('/login');
-        // }
+        // In a real app, an Edge Function would be called here to verify and create the user.
+        // const { data, error } = await supabase.functions.invoke('verify-otp', { ... });
         
         // For the demo, we simulate success
         alert('DEMO: Signup successful! Please log in with your phone number.');
-        navigate('/login'); // Redirect to login, which you'd also adapt for phone login
+        navigate('/login'); // Redirect to login
 
         setLoading(false);
     };
@@ -88,7 +72,6 @@ export default function SignUp() {
                                 </Form>
                             ) : (
                                 <Form onSubmit={handleVerifyOtp}>
-                                    <p>Enter the OTP sent to the mobile number linked with Aadhar ending in ...{/* You would show last 4 digits here */}</p>
                                     <Form.Group className="mb-3" controlId="formOtp">
                                         <Form.Label>OTP</Form.Label>
                                         <Form.Control type="text" placeholder="Enter 6-digit OTP" value={otp} onChange={e => setOtp(e.target.value)} required minLength="6" maxLength="6" />
