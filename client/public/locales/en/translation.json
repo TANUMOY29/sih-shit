@@ -24,5 +24,11 @@
   "aadharNotFoundError": "This Aadhar number is not in our records.",
   "demoOtpAlert": "FOR DEMO PURPOSES, your OTP is: {{otp}}",
   "incorrectOtpError": "Incorrect OTP. Please try again.",
-  "signupSuccessAlert": "Signup successful! A confirmation link has been sent to your email. Please verify and then log in."
+  "signupSuccessAlert": "Signup successful! A confirmation link has been sent to your email. Please verify and then log in.",
+  "geofencingLink":"Geofencing",
+  "digitalIdLink": "Digital ID",
+  "aboutUsLink": "About Us",
+  "accountLink": "Account",
+  "myAccountLink": "My Account",
+  "logoutButton": "Logout"
 }
