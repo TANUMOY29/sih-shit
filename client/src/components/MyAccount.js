@@ -12,30 +12,49 @@ export default function MyAccount() {
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        const fetchUserAndProfile = async () => {
-            setLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (user) {
-                setUser(user);
-                try {
-                    const { data, error } = await supabase
-                        .from('tourists')
-                        .select('*')
-                        .eq('id', user.id)
-                        .single();
-                    if (error) throw error;
-                    setProfile(data);
-                } catch (error) {
-                    setError(error.message);
-                }
-            } else {
-                setError("Could not find an active session. Please log in again.");
+        const fetchUserAndProfile = async (currentUser) => {
+            // This is the safety check. If for any reason the user object is not valid, it will not proceed.
+            if (!currentUser) {
+                setError("You must be logged in to view this page.");
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+            setUser(currentUser);
+            try {
+                const { data, error } = await supabase
+                    .from('tourists')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') throw error;
+                
+                if (data) {
+                    setProfile(data);
+                } else {
+                    // Create a default profile object if none exists in the database yet
+                    setProfile({
+                        email: currentUser.email,
+                        full_name: currentUser.user_metadata?.full_name || '',
+                        aadhar_number: currentUser.user_metadata?.aadhar_number || '',
+                        dob: '',
+                        gender: '',
+                        address: ''
+                    });
+                }
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
         };
-        
-        fetchUserAndProfile();
+
+        // This listener is the single source of truth. It fires on load and on any change.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            fetchUserAndProfile(session?.user);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const handleUpdateProfile = async (e) => {
@@ -56,7 +75,7 @@ export default function MyAccount() {
             const { error } = await supabase.from('tourists').upsert(updates);
             if (error) throw error;
             setMessage('Profile updated successfully!');
-        } catch (error) {
+        } catch (error)  {
             setError(error.message);
         } finally {
             setLoading(false);
