@@ -1,39 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Card, Spinner, Alert, Button } from 'react-bootstrap';
-import MapView from './MapView'; // Assuming MapView is for displaying the map
+import MapView from './MapView';
 
 export default function Geofencing() {
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [trackingOn, setTrackingOn] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      setLoading(true);
+    const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-      } else {
+      if (!user) {
         setError("You must be logged in to use this feature.");
       }
       setLoading(false);
     };
-    fetchUser();
+    checkUser();
   }, []);
-
-  const handleToggleTracking = () => {
-    setTrackingOn(!trackingOn);
-    // In a real application, you would start/stop sending GPS coordinates here.
-  };
 
   if (loading) {
     return (
-      <div className="text-center">
-        <Spinner animation="border" />
-        <p>Loading Geofencing...</p>
-      </div>
+      <div className="text-center"><Spinner animation="border" /><p>Loading Geofencing...</p></div>
     );
   }
 
@@ -45,14 +33,9 @@ export default function Geofencing() {
     <Card>
       <Card.Body>
         <Card.Title>Geofencing Mode</Card.Title>
-        <Card.Text>
-          This page allows you to manage your safe zones and location tracking.
-        </Card.Text>
+        <Card.Text>This page allows you to manage your safe zones and location tracking.</Card.Text>
         <div className="mb-3">
-            <Button 
-                variant={trackingOn ? "danger" : "success"}
-                onClick={handleToggleTracking}
-            >
+            <Button variant={trackingOn ? "danger" : "success"} onClick={() => setTrackingOn(!trackingOn)}>
                 {trackingOn ? "Stop Tracking" : "Start Tracking"}
             </Button>
             {trackingOn && <span className="ms-3 text-success"><strong>Tracking is ON</strong></span>}
