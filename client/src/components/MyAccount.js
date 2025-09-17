@@ -9,15 +9,17 @@ export default function MyAccount({ session }) {
         emergencyContactName: '', emergencyContactPhone: '',
         dob: '', gender: '', homeAddress: ''
     });
+    const [aadharNumber, setAadharNumber] = useState(''); // State for Aadhar
     const [message, setMessage] = useState('');
 
     useEffect(() => {
         const fetchProfile = async () => {
             setLoading(true);
             const { user } = session;
+            // Fetch all profile data including the aadhar_number
             let { data, error } = await supabase.from('tourists').select('*').eq('id', user.id).single();
 
-            if (error && error.code !== 'PGRST116') {
+            if (error && error.code !== 'PGRST116') { // Ignore error if no row is found yet
                 console.warn(error);
             } else if (data) {
                 setProfile({
@@ -30,6 +32,8 @@ export default function MyAccount({ session }) {
                     gender: data.gender || '',
                     homeAddress: data.home_address || ''
                 });
+                // Set the aadhar number from the fetched data
+                setAadharNumber(data.aadhar_number || '');
             }
             setLoading(false);
         };
@@ -43,6 +47,7 @@ export default function MyAccount({ session }) {
         setMessage('');
         const { user } = session;
 
+        // Note: We are not updating the aadhar_number as it should be fixed upon signup.
         const updates = {
             id: user.id,
             full_name: profile.fullName,
@@ -65,6 +70,12 @@ export default function MyAccount({ session }) {
         }
         setLoading(false);
     };
+    
+    // Helper function to mask the Aadhar number
+    const maskAadhar = (number) => {
+        if (!number || number.length < 4) return 'Not Provided';
+        return '********' + number.slice(-4);
+    };
 
     const handleChange = (e) => {
         setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -82,41 +93,26 @@ export default function MyAccount({ session }) {
                             {message && <Alert variant={message.startsWith('Error') ? 'danger' : 'success'}>{message}</Alert>}
                             <Form onSubmit={updateProfile}>
                                 <Row className="mb-3">
+                                    <Form.Group as={Col} controlId="email">
+                                        <Form.Label>Email / Phone</Form.Label>
+                                        <Form.Control type="text" value={session.user.email || session.user.phone} readOnly disabled />
+                                    </Form.Group>
+                                    <Form.Group as={Col} controlId="aadharNumber">
+                                        <Form.Label>Aadhar Number</Form.Label>
+                                        <Form.Control type="text" value={maskAadhar(aadharNumber)} readOnly disabled />
+                                    </Form.Group>
+                                </Row>
+                                <Row className="mb-3">
                                     <Form.Group as={Col} controlId="fullName">
                                         <Form.Label>Full Name</Form.Label>
                                         <Form.Control type="text" name="fullName" value={profile.fullName} onChange={handleChange} />
                                     </Form.Group>
                                     <Form.Group as={Col} controlId="documentNumber">
-                                        <Form.Label>Document Number (Passport/Aadhaar)</Form.Label>
+                                        <Form.Label>Other Document Number</Form.Label>
                                         <Form.Control type="text" name="documentNumber" value={profile.documentNumber} onChange={handleChange} />
                                     </Form.Group>
                                 </Row>
-                                <Row className="mb-3">
-                                    <Form.Group as={Col} controlId="dob">
-                                        <Form.Label>Date of Birth</Form.Label>
-                                        <Form.Control type="date" name="dob" value={profile.dob} onChange={handleChange} />
-                                    </Form.Group>
-                                    <Form.Group as={Col} controlId="gender">
-                                        <Form.Label>Gender</Form.Label>
-                                        <Form.Control type="text" name="gender" value={profile.gender} onChange={handleChange} />
-                                    </Form.Group>
-                                </Row>
-                                <Form.Group className="mb-3" controlId="homeAddress">
-                                    <Form.Label>Home Address</Form.Label>
-                                    <Form.Control type="text" name="homeAddress" value={profile.homeAddress} onChange={handleChange} />
-                                </Form.Group>
                                 <hr />
-                                <h4 className="mt-4">Emergency Contact</h4>
-                                <Row className="mb-3">
-                                    <Form.Group as={Col} controlId="emergencyContactName">
-                                        <Form.Label>Contact Name</Form.Label>
-                                        <Form.Control type="text" name="emergencyContactName" value={profile.emergencyContactName} onChange={handleChange} />
-                                    </Form.Group>
-                                    <Form.Group as={Col} controlId="emergencyContactPhone">
-                                        <Form.Label>Contact Phone</Form.Label>
-                                        <Form.Control type="text" name="emergencyContactPhone" value={profile.emergencyContactPhone} onChange={handleChange} />
-                                    </Form.Group>
-                                </Row>
                                 <Button variant="primary" type="submit" disabled={loading}>
                                     {loading ? 'Saving...' : 'Save Changes'}
                                 </Button>
