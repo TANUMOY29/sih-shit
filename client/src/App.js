@@ -47,9 +47,7 @@ function App() {
         };
     }, []);
 
-    if (loading) {
-        return <div>Loading Application...</div>;
-    }
+   
 
     return (
         <BrowserRouter>
