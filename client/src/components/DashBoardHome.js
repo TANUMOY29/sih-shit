@@ -1,52 +1,46 @@
 import React from 'react';
-import { supabase } from '../supabaseClient';
-import { Button, Container, Row, Col, Card } from 'react-bootstrap';
+import { Card, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import MapView from './MapView';
+import { useTranslation } from 'react-i18next';
 
-export default function DashboardHome({ session }) {
-    const handlePanicButtonClick = () => {
-        if (!window.navigator.geolocation) {
-            return alert('Geolocation is not supported by your browser.');
-        }
-        window.navigator.geolocation.getCurrentPosition(async (position) => {
-            const { latitude, longitude } = position.coords;
-            const { user } = session;
-            const { error } = await supabase.from('alerts').insert({
-                tourist_id: user.id, latitude, longitude, status: 'active'
-            });
-            if (error) {
-                alert("SOS Error: " + error.message);
-            } else {
-                alert('SOS signal sent! Authorities have been notified.');
-            }
-        });
-    };
+export default function DashboardHome() {
+    const { t } = useTranslation();
 
     return (
-        <Container className="text-center mt-5">
-            <Row className="justify-content-center">
-                <Col md={8}>
-                    <Card className="p-5 border-0 shadow-lg">
+        <div>
+            <h2 className="mb-4">{t('dashboardTitle')}</h2>
+            <Row>
+                <Col md={12} className="mb-4">
+                    <MapView />
+                </Col>
+            </Row>
+            <Row>
+                <Col md={4} className="mb-4">
+                    <Card as={Link} to="/my-account" className="text-decoration-none text-dark h-100">
                         <Card.Body>
-                            <h2 className="mb-4 text-secondary">In case of emergency, press this button</h2>
-                            <Button
-                                variant="danger"
-                                onClick={handlePanicButtonClick}
-                                style={{
-                                    width: '200px',
-                                    height: '200px',
-                                    borderRadius: '50%',
-                                    fontSize: '2.5rem',
-                                    fontWeight: 'bold',
-                                    boxShadow: '0px 8px 15px rgba(0, 0, 0, 0.3)',
-                                    border: '5px solid white'
-                                }}
-                            >
-                                SOS
-                            </Button>
+                            <Card.Title>{t('myAccountLink')}</Card.Title>
+                            <Card.Text>{t('myAccountDescription')}</Card.Text>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={4} className="mb-4">
+                    <Card as={Link} to="/digital-id" className="text-decoration-none text-dark h-100">
+                        <Card.Body>
+                            <Card.Title>{t('digitalIdLink')}</Card.Title>
+                            <Card.Text>{t('digitalIdDescription')}</Card.Text>
+                        </Card.Body>
+                    </Card>
+                </Col>
+                <Col md={4} className="mb-4">
+                    <Card as={Link} to="/geofencing" className="text-decoration-none text-dark h-100">
+                        <Card.Body>
+                            <Card.Title>{t('geofencingLink')}</Card.Title>
+                            <Card.Text>{t('geofencingDescription')}</Card.Text>
                         </Card.Body>
                     </Card>
                 </Col>
             </Row>
-        </Container>
+        </div>
     );
 }

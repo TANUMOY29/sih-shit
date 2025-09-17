@@ -8,49 +8,46 @@ import { useTranslation } from 'react-i18next';
 export default function AppLayout() {
     const { t } = useTranslation();
     const [profile, setProfile] = useState(null);
-    const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            if (session) {
-                await fetchProfile(session.user);
+        const fetchProfile = async (user) => {
+            // THE FINAL, DEFINITIVE FIX IS HERE:
+            if (!user) return; // If no user object is provided, exit the function.
+            try {
+                const { data, error } = await supabase.from('tourists').select('full_name').eq('id', user.id).single();
+                if (error) throw error;
+                setProfile(data);
+            } catch (error) {
+                console.error('Error fetching profile:', error.message);
             }
-            setLoading(false);
         };
 
-        fetchSession();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             if (session) {
-                fetchProfile(session.user);
+                await fetchProfile(session.user);
             } else {
-                setProfile(null);
+                navigate('/login');
             }
+            setLoading(false);
         });
 
         return () => subscription.unsubscribe();
-    }, []);
-
-    const fetchProfile = async (user) => {
-        if (!user) return;
-        try {
-            const { data, error } = await supabase.from('tourists').select('full_name').eq('id', user.id).single();
-            if (error) throw error;
-            setProfile(data);
-        } catch (error) {
-            console.error('Error fetching profile:', error.message);
-        }
-    };
+    }, [navigate]);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/login');
     };
+
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
+                <Spinner animation="border" />
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -66,16 +63,14 @@ export default function AppLayout() {
                         </Nav>
                         <Nav className="align-items-center ms-auto">
                             <LanguageSwitcher />
-                            {loading ? <Spinner animation="border" variant="light" size="sm" className="ms-2" /> : (
-                                session && profile ? (
-                                    <NavDropdown title={profile.full_name || t('accountLink', 'Account')} id="collasible-nav-dropdown" className="ms-2">
-                                        <NavDropdown.Item as={Link} to="/my-account">{t('myAccountLink', 'My Account')}</NavDropdown.Item>
-                                        <NavDropdown.Divider />
-                                        <NavDropdown.Item onClick={handleLogout}>{t('logoutButton', 'Logout')}</NavDropdown.Item>
-                                    </NavDropdown>
-                                ) : (
-                                    <Nav.Link as={Link} to="/login">{t('loginLink', 'Login')}</Nav.Link>
-                                )
+                            {profile ? (
+                                <NavDropdown title={profile.full_name || t('accountLink', 'Account')} id="collasible-nav-dropdown" className="ms-2">
+                                    <NavDropdown.Item as={Link} to="/my-account">{t('myAccountLink', 'My Account')}</NavDropdown.Item>
+                                    <NavDropdown.Divider />
+                                    <NavDropdown.Item onClick={handleLogout}>{t('logoutButton', 'Logout')}</NavDropdown.Item>
+                                </NavDropdown>
+                            ) : (
+                                <Nav.Link as={Link} to="/login">{t('loginLink', 'Login')}</Nav.Link>
                             )}
                         </Nav>
                     </Navbar.Collapse>
