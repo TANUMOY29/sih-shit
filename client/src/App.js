@@ -30,18 +30,35 @@ function App() {
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // This robust setup ensures the loading state is always handled correctly.
+    const initializeSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       if (session) {
         const userProfile = await fetchProfile(session.user);
         setProfile(userProfile);
-      } else {
-        setProfile(null);
       }
       setLoading(false);
-    });
 
-    return () => subscription.unsubscribe();
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        setSession(session);
+        if (session) {
+          const userProfile = await fetchProfile(session.user);
+          setProfile(userProfile);
+        } else {
+          setProfile(null);
+        }
+      });
+      
+      return subscription;
+    };
+
+    const subscriptionPromise = initializeSession();
+
+    return () => {
+      // Cleanup the subscription when the component unmounts
+      subscriptionPromise.then(subscription => subscription.unsubscribe());
+    };
   }, []);
 
   if (loading) {
@@ -57,9 +74,9 @@ function App() {
       <Routes>
         <Route path="/" element={<AppLayout session={session} profile={profile} />}>
           <Route index element={<DashboardHome />} />
-          <Route path="my-account" element={<MyAccount session={session} profile={profile} />} />
-          <Route path="geofencing" element={<Geofencing session={session} />} />
-          <Route path="digital-id" element={<DigitalId session={session} profile={profile} />} />
+          <Route path="my-account" element={<MyAccount />} />
+          <Route path="geofencing" element={<Geofencing />} />
+          <Route path="digital-id" element={<DigitalId />} />
           <Route path="about-us" element={<AboutUs />} />
         </Route>
 
