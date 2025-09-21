@@ -8,32 +8,31 @@ export default function SignUp() {
     const { register } = useAuth();
     const navigate = useNavigate();
     
-    // State to manage the signup flow
-    const [step, setStep] = useState('choice'); // 'choice', 'aadharInput', 'otpInput', 'profileConfirm'
+    const [step, setStep] = useState(0); // 0: Choice, 1: Aadhar, 2: OTP, 3: Profile
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
-    // State for user data
+    
     const [aadharNumber, setAadharNumber] = useState('');
     const [otpInput, setOtpInput] = useState('');
-    const [generatedOtp, setGeneratedOtp] = useState('');
-    const [prefilledData, setPrefilledData] = useState(null);
     const [password, setPassword] = useState('');
 
-    const handleAadharAuth = async () => {
+    const [aadharData, setAadharData] = useState(null);
+    const [generatedOtp, setGeneratedOtp] = useState('');
+
+    const handleSendOtp = async (e) => {
+        e.preventDefault();
         setLoading(true);
         setError('');
         try {
-            // Step 1: Find the Aadhar record in our demo DB
-            const record = await api.get(`aadhar/${aadharNumber}`);
-            setPrefilledData(record);
-
-            // Step 2: Simulate sending OTP
+            // Call the new, correct backend endpoint
+            const data = await api.post('aadhar/verify', { aadharNumber });
+            setAadharData(data);
+            
             const fakeOtp = Math.floor(100000 + Math.random() * 900000).toString();
             setGeneratedOtp(fakeOtp);
-            alert(`FOR DEMO: OTP for ${record.phone_number} is ${fakeOtp}`);
-            
-            setStep('otpInput');
+            alert(`FOR DEMO PURPOSES, your OTP is: ${fakeOtp}`);
+            setStep(2);
+
         } catch (err) {
             setError(err.message);
         } finally {
@@ -41,30 +40,30 @@ export default function SignUp() {
         }
     };
 
-    const handleOtpVerify = () => {
-        if (otpInput === generatedOtp) {
-            setStep('profileConfirm');
-        } else {
-            setError('Invalid OTP. Please try again.');
+    const handleVerifyOtp = (e) => {
+        e.preventDefault();
+        if (otpInput !== generatedOtp) {
+            return setError('Incorrect OTP. Please try again.');
         }
+        setError('');
+        setStep(3);
     };
-
-    const handleFinalRegister = async (e) => {
+    
+    const handleFinalSignUp = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         try {
-            // Use the pre-filled data and the new password to register the user
             await register({
-                fullName: prefilledData.full_name,
-                email: prefilledData.email,
+                fullName: aadharData.full_name,
+                email: aadharData.email,
                 password: password,
-                aadharNumber: prefilledData.aadhar_number,
-                dob: prefilledData.dob,
-                gender: prefilledData.gender,
-                address: prefilledData.address
+                aadharNumber: aadharData.aadhar_number,
+                dob: aadharData.dob,
+                gender: aadharData.gender,
+                address: aadharData.address
             });
-            navigate('/'); // Redirect to dashboard
+            navigate('/');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -74,59 +73,58 @@ export default function SignUp() {
 
     const renderStep = () => {
         switch (step) {
-            case 'aadharInput':
+            case 0:
                 return (
-                    <Form.Group>
-                        <Form.Label>Aadhar Number</Form.Label>
-                        <Form.Control type="text" value={aadharNumber} onChange={e => setAadharNumber(e.target.value)} placeholder="Enter 12-digit Aadhar" />
-                        <Button onClick={handleAadharAuth} className="w-100 mt-3" disabled={loading}>{loading ? <Spinner size="sm" /> : "Verify Aadhar"}</Button>
-                    </Form.Group>
-                );
-            case 'otpInput':
-                return (
-                    <Form.Group>
-                        <Form.Label>Enter OTP</Form.Label>
-                        <Form.Control type="text" value={otpInput} onChange={e => setOtpInput(e.target.value)} placeholder="6-digit OTP" />
-                        <Button onClick={handleOtpVerify} className="w-100 mt-3">Verify OTP</Button>
-                    </Form.Group>
-                );
-            case 'profileConfirm':
-                return (
-                    <Form onSubmit={handleFinalRegister}>
-                        <h4 className="text-success text-center">Aadhar Verified!</h4>
-                        <p className="text-muted text-center">Please confirm your details and set a password.</p>
-                        <Form.Group className="mb-2"><Form.Label>Full Name</Form.Label><Form.Control type="text" value={prefilledData.full_name} disabled /></Form.Group>
-                        <Form.Group className="mb-2"><Form.Label>Email</Form.Label><Form.Control type="email" value={prefilledData.email} disabled /></Form.Group>
-                        <Form.Group className="mb-2"><Form.Label>Date of Birth</Form.Label><Form.Control type="text" value={new Date(prefilledData.dob).toLocaleDateString()} disabled /></Form.Group>
-                        <Form.Group className="mb-3"><Form.Label>Password</Form.Label><Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Create a password" required /></Form.Group>
-                        <Button type="submit" className="w-100" disabled={loading}>{loading ? <Spinner size="sm" /> : "Complete Registration"}</Button>
-                    </Form>
-                );
-            case 'choice':
-            default:
-                return (
-                    <div>
-                        <Button onClick={() => setStep('aadharInput')} className="w-100 mb-3" size="lg">Authenticate with Aadhar</Button>
-                        <Button variant="secondary" className="w-100" size="lg" disabled>Authenticate with Other Docs</Button>
+                    <div className="d-grid gap-2">
+                        <Button variant="primary" size="lg" onClick={() => setStep(1)}>Authenticate with Aadhar</Button>
+                        <Button variant="secondary" size="lg" disabled>Authenticate with Other Docs (Coming Soon)</Button>
                     </div>
                 );
+            case 1:
+                return (
+                    <Form onSubmit={handleSendOtp}>
+                        <Form.Group className="mb-3"><Form.Label>Aadhar Number</Form.Label><Form.Control type="text" value={aadharNumber} onChange={e => setAadharNumber(e.target.value)} required /></Form.Group>
+                        <div className="d-grid"><Button variant="primary" type="submit" disabled={loading}>{loading ? <Spinner size="sm"/> : 'Send OTP'}</Button></div>
+                    </Form>
+                );
+            case 2:
+                return (
+                    <Form onSubmit={handleVerifyOtp}>
+                        <Form.Group className="mb-3"><Form.Label>OTP</Form.Label><Form.Control type="text" value={otpInput} onChange={e => setOtpInput(e.target.value)} required /></Form.Group>
+                        <div className="d-grid"><Button variant="success" type="submit">Verify OTP</Button></div>
+                    </Form>
+                );
+            case 3:
+                return (
+                    <Form onSubmit={handleFinalSignUp}>
+                        <p className="text-success text-center">✓ Aadhar Verified!</p>
+                        <Form.Group className="mb-3"><Form.Label>Full Name</Form.Label><Form.Control type="text" value={aadharData.full_name} disabled /></Form.Group>
+                        <Form.Group className="mb-3"><Form.Label>Email</Form.Label><Form.Control type="email" value={aadharData.email} disabled /></Form.Group>
+                        <Form.Group className="mb-3"><Form.Label>Date of Birth</Form.Label><Form.Control type="text" value={new Date(aadharData.dob).toLocaleDateString()} disabled /></Form.Group>
+                        <Form.Group className="mb-3"><Form.Label>Password</Form.Label><Form.Control type="password" placeholder="Create a password" value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
+                        <div className="d-grid"><Button variant="primary" type="submit" disabled={loading}>{loading ? <Spinner size="sm"/> : 'Complete Registration'}</Button></div>
+                    </Form>
+                );
+            default: return null;
         }
     };
 
     return (
         <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh" }}>
-            <div className="w-100" style={{ maxWidth: "400px" }}>
-                <Card>
-                    <Card.Body>
-                        <h2 className="text-center mb-4">Register</h2>
-                        {error && <Alert variant="danger">{error}</Alert>}
-                        {renderStep()}
-                        <div className="w-100 text-center mt-2">
-                            <Link to="/login">Already have an account? Log In</Link>
-                        </div>
-                    </Card.Body>
-                </Card>
-            </div>
+            <Row>
+                <Col>
+                    <Card className="p-4 shadow-sm" style={{ width: '25rem' }}>
+                        <Card.Body>
+                            <h2 className="text-center mb-4">Create Your Account</h2>
+                            {error && <Alert variant="danger">{error}</Alert>}
+                            {renderStep()}
+                             <div className="mt-3 text-center">
+                                <small>Already have an account? <Link to="/login">Log In</Link></small>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                </Col>
+            </Row>
         </Container>
     );
 }
