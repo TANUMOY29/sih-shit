@@ -1,5 +1,5 @@
 import { Card, ListGroup } from 'react-bootstrap';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authcontext';
 
 export default function DigitalId() {
     const { user } = useAuth();

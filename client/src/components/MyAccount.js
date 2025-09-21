@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authcontext';
 import api from '../services/api';
 import { Form, Button, Container, Card, Alert, Spinner } from 'react-bootstrap';
 

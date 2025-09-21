@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/authcontext';
 import AppLayout from './components/AppLayout';
 import PublicLayout from './components/PublicLayout';
 import DashboardHome from './components/DashBoardHome';

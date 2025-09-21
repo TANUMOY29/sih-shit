@@ -19,6 +19,7 @@ mongoose.connect(process.env.MONGO_URI)
 app.get('/', (req, res) => {
   res.send('Travel Shield Backend is running!');
 });
+app.use('/api/aadhar', require('./routes/aadhar'));
 
 app.use('/api/auth', require('./routes/auth'));
 // We will add more routes here for profile, alerts, etc.
