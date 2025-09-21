@@ -1,25 +1,35 @@
 import { useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { useNavigate, Link } from 'react-router-dom';
-import { Form, Button, Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Form, Button, Container, Card, Alert } from 'react-bootstrap';
 
 export default function Login() {
-    const { t } = useTranslation();
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
         try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
+            const response = await fetch('http://localhost:5000/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.msg || 'Failed to log in');
+            }
+
+            localStorage.setItem('token', data.token);
             navigate('/');
+
         } catch (error) {
             setError(error.message);
         } finally {
@@ -29,37 +39,19 @@ export default function Login() {
 
     return (
         <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh" }}>
-            <Row>
-                <Col>
-                    <Card className="p-4 shadow-sm" style={{ width: '25rem' }}>
-                        <Card.Body>
-                            <div className="text-center mb-4">
-                                <h2>🛡️ Travel Shield</h2>
-                                <p className="text-muted">{t('loginTitle')}</p>
-                            </div>
-                            {error && <Alert variant="danger">{error}</Alert>}
-                            <Form onSubmit={handleLogin}>
-                                <Form.Group className="mb-3" controlId="formEmail">
-                                    <Form.Label>{t('emailLabel')}</Form.Label>
-                                    <Form.Control type="email" placeholder={t('emailPlaceholder')} value={email} onChange={e => setEmail(e.target.value)} required />
-                                </Form.Group>
-                                <Form.Group className="mb-3" controlId="formPassword">
-                                    <Form.Label>{t('passwordLabel')}</Form.Label>
-                                    <Form.Control type="password" placeholder={t('passwordPlaceholder')} value={password} onChange={e => setPassword(e.target.value)} required />
-                                </Form.Group>
-                                <div className="d-grid mt-4">
-                                    <Button variant="primary" size="lg" type="submit" disabled={loading}>
-                                        {loading ? <Spinner as="span" animation="border" size="sm" /> : t('loginButton')}
-                                    </Button>
-                                </div>
-                            </Form>
-                            <div className="mt-3 text-center">
-                                <small>{t('noAccount')}<Link to="/signup">{t('signUpLink')}</Link></small>
-                            </div>
-                        </Card.Body>
-                    </Card>
-                </Col>
-            </Row>
+            <div className="w-100" style={{ maxWidth: "400px" }}>
+                <Card>
+                    <Card.Body>
+                        <h2 className="text-center mb-4">Log In</h2>
+                        {error && <Alert variant="danger">{error}</Alert>}
+                        <Form onSubmit={handleLogin}>
+                            <Form.Group id="email"><Form.Label>Email</Form.Label><Form.Control type="email" value={email} onChange={e => setEmail(e.target.value)} required /></Form.Group>
+                            <Form.Group id="password"><Form.Label>Password</Form.Label><Form.Control type="password" value={password} onChange={e => setPassword(e.target.value)} required /></Form.Group>
+                            <Button disabled={loading} className="w-100 mt-3" type="submit">Log In</Button>
+                        </Form>
+                    </Card.Body>
+                </Card>
+            </div>
         </Container>
     );
 }
