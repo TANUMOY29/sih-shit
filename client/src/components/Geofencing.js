@@ -1,107 +1,58 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabaseClient';
+import { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { Card, Spinner, Alert, Button } from 'react-bootstrap';
-import MapView from './MapView';
-import { useOutletContext } from 'react-router-dom';
+// import MapView from './MapView'; // Assuming you have a MapView component
 
 export default function Geofencing() {
-  // THE FIX IS HERE: We get the whole context first and check if it exists.
-  const context = useOutletContext();
-  const session = context?.session; // Safely access session using optional chaining
-
-  const [error, setError] = useState('');
+  const { user } = useAuth();
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [isTracking, setIsTracking] = useState(false);
-
   const intervalRef = useRef(null);
 
-  const sendLocationToSupabase = async () => {
-    if (!session?.user) {
-      console.log("No session, cannot send location.");
-      return;
-    }
-    
-    setMessage('Getting current location...');
-    try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-
-      const { error } = await supabase
-        .from('location_history')
-        .insert({
-          tourist_id: session.user.id,
-          latitude: latitude,
-          longitude: longitude
-        });
-
-      if (error) throw error;
-      setMessage(`Location updated successfully at ${new Date().toLocaleTimeString()}`);
-    } catch (err) {
-      setError(`Error: ${err.message}`);
-      setIsTracking(false);
-    }
+  const sendLocation = async () => {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+            // NOTE: You need to build this '/location-history' endpoint on your backend
+            await api.post('location-history', { latitude, longitude });
+            setMessage(`Location updated at ${new Date().toLocaleTimeString()}`);
+        } catch (err) {
+            setError(err.message);
+            setIsTracking(false); // Stop tracking on error
+        }
+    }, () => {
+        setError('Unable to retrieve your location.');
+        setIsTracking(false);
+    });
   };
 
   useEffect(() => {
     if (isTracking) {
-      sendLocationToSupabase();
-      intervalRef.current = setInterval(sendLocationToSupabase, 30000);
+      sendLocation(); // Send location immediately
+      intervalRef.current = setInterval(sendLocation, 30000); // And every 30 seconds
     } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-        setMessage('Tracking stopped.');
-      }
+      clearInterval(intervalRef.current);
     }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isTracking, session]);
+    return () => clearInterval(intervalRef.current); // Cleanup on component unmount
+  }, [isTracking]);
 
-  const handleToggleTracking = () => {
-    setIsTracking(!isTracking);
-  };
-
-  // Show a loading spinner until the context has been provided by the parent
-  if (!context) {
-    return (
-        <div className="text-center">
-            <Spinner animation="border" />
-        </div>
-    );
-  }
-
-  if (!session) {
-    return <Alert variant="warning">You must be logged in to use this feature.</Alert>;
+  if (!user) {
+    return <Spinner animation="border" />;
   }
 
   return (
     <Card>
       <Card.Body>
         <Card.Title>Geofencing Mode</Card.Title>
-        <Card.Text>
-          Turn on tracking to share your location in real-time.
-        </Card.Text>
-        <div className="mb-3">
-            <Button 
-                variant={isTracking ? "danger" : "success"}
-                onClick={handleToggleTracking}
-            >
-                {isTracking ? "Stop Tracking" : "Start Tracking"}
-            </Button>
-        </div>
-        
-        {message && <Alert variant="info">{message}</Alert>}
-        {error && <Alert variant="danger">{error}</Alert>}
-
-        <MapView />
+        <Card.Text>Turn on tracking to share your location in real-time.</Card.Text>
+        <Button variant={isTracking ? "danger" : "success"} onClick={() => setIsTracking(!isTracking)}>
+          {isTracking ? "Stop Tracking" : "Start Tracking"}
+        </Button>
+        {message && <Alert variant="info" className="mt-3">{message}</Alert>}
+        {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
+        {/* <MapView /> */}
       </Card.Body>
     </Card>
   );

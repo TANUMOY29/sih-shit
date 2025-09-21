@@ -1,70 +1,19 @@
-import React from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { Navbar, Container, Nav, NavDropdown, Spinner } from 'react-bootstrap';
-import { supabase } from '../supabaseClient';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Navbar, Container, Nav, NavDropdown } from 'react-bootstrap';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
-import SOSButton from './SOSButton'; // Import the new SOS Button
-
-// This custom hook is the safe way to handle user sessions
-const useUser = () => {
-    const [session, setSession] = React.useState(null);
-    const [profile, setProfile] = React.useState(null);
-    const [loading, setLoading] = React.useState(true);
-    const navigate = useNavigate();
-
-    React.useEffect(() => {
-        const fetchProfile = async (user) => {
-            if (!user) return;
-            try {
-                const { data, error } = await supabase.from('tourists').select('full_name').eq('id', user.id).single();
-                if (error && error.code !== 'PGRST116') throw error;
-                setProfile(data);
-            } catch (error) {
-                console.error('Error fetching profile:', error.message);
-            }
-        };
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            if (session) {
-                await fetchProfile(session.user);
-            } else {
-                setProfile(null);
-            }
-            setLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
-    }, [navigate]);
-
-    return { session, profile, loading };
-};
-
+import SOSButton from './SOSButton'; // Assuming SOSButton is also updated
 
 export default function AppLayout() {
-    const { t } = useTranslation();
-    const { session, profile, loading } = useUser();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
+    const handleLogout = () => {
+        logout();
         navigate('/login');
     };
-
-    if (loading) {
-        return (
-            <div className="d-flex justify-content-center align-items-center" style={{ height: '100vh' }}>
-                <Spinner animation="border" />
-            </div>
-        );
-    }
-
-    // If loading is done and there's still no session, redirect to login
-    if (!session) {
-        navigate('/login');
-        return null; // Render nothing while redirecting
-    }
 
     return (
         <div>
@@ -74,32 +23,27 @@ export default function AppLayout() {
                     <Navbar.Toggle aria-controls="responsive-navbar-nav" />
                     <Navbar.Collapse id="responsive-navbar-nav">
                         <Nav className="me-auto">
-                            <Nav.Link as={Link} to="/geofencing">{t('geofencingLink', 'Geofencing')}</Nav.Link>
-                            <Nav.Link as={Link} to="/digital-id">{t('digitalIdLink', 'Digital ID')}</Nav.Link>
-                            <Nav.Link as={Link} to="/about-us">{t('aboutUsLink', 'About Us')}</Nav.Link>
+                            <Nav.Link as={Link} to="/geofencing">{t('geofencing')}</Nav.Link>
+                            <Nav.Link as={Link} to="/digital-id">{t('digitalID')}</Nav.Link>
+                            <Nav.Link as={Link} to="/about-us">{t('aboutUs')}</Nav.Link>
                         </Nav>
-                        <Nav className="align-items-center ms-auto">
+                        <Nav>
                             <LanguageSwitcher />
-                            {profile ? (
-                                <NavDropdown title={profile.full_name || t('accountLink', 'Account')} id="collasible-nav-dropdown" className="ms-2">
-                                    <NavDropdown.Item as={Link} to="/my-account">{t('myAccountLink', 'My Account')}</NavDropdown.Item>
+                            {user && (
+                                <NavDropdown title={user.full_name || 'Account'} id="collasible-nav-dropdown">
+                                    <NavDropdown.Item as={Link} to="/my-account">{t('myAccount')}</NavDropdown.Item>
                                     <NavDropdown.Divider />
-                                    <NavDropdown.Item onClick={handleLogout}>{t('logoutButton', 'Logout')}</NavDropdown.Item>
+                                    <NavDropdown.Item onClick={handleLogout}>{t('logout')}</NavDropdown.Item>
                                 </NavDropdown>
-                            ) : (
-                                 <Spinner animation="border" variant="light" size="sm" className="ms-2" />
                             )}
                         </Nav>
                     </Navbar.Collapse>
                 </Container>
             </Navbar>
-
-            <Container className="mt-4">
-                <Outlet />
-            </Container>
-            
-            {/* The SOS button will now appear on all protected pages */}
-            <SOSButton />
+            <main className="container mt-4">
+                {/* The content of your pages will be rendered here */}
+            </main>
+            {user && <SOSButton />}
         </div>
     );
 }

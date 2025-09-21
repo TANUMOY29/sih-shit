@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-// Initialize the app ONCE
+// Initialize the app
 const app = express();
 
 // Middlewares
@@ -20,8 +20,8 @@ app.get('/', (req, res) => {
   res.send('Travel Shield Backend is running!');
 });
 
-// We will add more specific routes here later
-// For example: app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', require('./routes/auth'));
+// We will add more routes here for profile, alerts, etc.
 
 // Define the port
 const PORT = process.env.PORT || 5000;
