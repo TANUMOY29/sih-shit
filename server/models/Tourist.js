@@ -8,6 +8,7 @@ const touristSchema = new mongoose.Schema({
     dob: { type: Date },
     gender: { type: String },
     address: { type: String },
-}, { timestamps: true }); // timestamps adds createdAt and updatedAt fields automatically
+}, { timestamps: true });
 
 module.exports = mongoose.model('Tourist', touristSchema);
+
