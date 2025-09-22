@@ -24,19 +24,21 @@ export default function SignUp() {
     setLoading(true);
     setError('');
     try {
-        // Send the correct field name
+        // Correct endpoint for backend
         const data = await api.post('aadhar/verify', { aadhar_number: aadharNumber.trim() });
         setAadharData(data);
+
         const fakeOtp = Math.floor(100000 + Math.random() * 900000).toString();
         setGeneratedOtp(fakeOtp);
         alert(`FOR DEMO PURPOSES, your OTP is: ${fakeOtp}`);
         setStep(2);
     } catch (err) {
-        setError(err.response?.data?.msg || err.message);
+        setError(err.message);
     } finally {
         setLoading(false);
     }
 };
+
 
 
     const handleVerifyOtp = (e) => {
