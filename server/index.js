@@ -30,6 +30,8 @@ app.use('/api/auth', authRoute);
 const touristRoute = require('./routes/tourists');
 app.use('/api/tourists', touristRoute);
 
+app.use('/api/location', require('./routes/location'));
+
 
 // Handle unknown routes
 app.use((req, res) => {

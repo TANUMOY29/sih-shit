@@ -1,9 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Outlet } from 'react-router-dom'; // 1. Import Outlet
 import { useAuth } from '../context/authcontext';
 import { Navbar, Container, Nav, NavDropdown } from 'react-bootstrap';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
-import SOSButton from './SOSButton'; // Assuming SOSButton is also updated
+import SOSButton from './SOSButton';
 
 export default function AppLayout() {
     const { user, logout } = useAuth();
@@ -40,9 +40,12 @@ export default function AppLayout() {
                     </Navbar.Collapse>
                 </Container>
             </Navbar>
-            <main className="container mt-4">
-                {/* The content of your pages will be rendered here */}
-            </main>
+            
+            {/* 2. Add the Outlet component here */}
+            <Container className="mt-4">
+                <Outlet />
+            </Container>
+            
             {user && <SOSButton />}
         </div>
     );

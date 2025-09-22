@@ -1,9 +1,23 @@
 const mongoose = require('mongoose');
 
-const locationHistorySchema = new mongoose.Schema({
-    tourist_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Tourist', required: true },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
-}, { timestamps: { createdAt: 'created_at', updatedAt: false } }); // Only need createdAt
+const LocationHistorySchema = new mongoose.Schema({
+    tourist: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tourist',
+        required: true
+    },
+    latitude: {
+        type: Number,
+        required: true
+    },
+    longitude: {
+        type: Number,
+        required: true
+    },
+    timestamp: {
+        type: Date,
+        default: Date.now
+    }
+});
 
-module.exports = mongoose.model('LocationHistory', locationHistorySchema);
+module.exports = mongoose.model('LocationHistory', LocationHistorySchema);
