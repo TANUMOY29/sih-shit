@@ -32,6 +32,10 @@ app.use('/api/tourists', touristRoute);
 
 app.use('/api/location', require('./routes/location'));
 
+app.use('/api/itineraries', require('./routes/itineraries'));
+
+app.use('/api/alert', require('./routes/alert'));
+
 
 // Handle unknown routes
 app.use((req, res) => {

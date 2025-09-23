@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import MapView from './MapView';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../context/TranslationContext';
+
 
 export default function DashboardHome() {
     const { t } = useTranslation();

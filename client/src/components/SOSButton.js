@@ -18,7 +18,7 @@ export default function SOSButton() {
             const { latitude, longitude } = position.coords;
             try {
                 // NOTE: You need to build this '/alerts' endpoint on your backend
-                await api.post('alerts', { latitude, longitude });
+                await api.post('alert', { latitude, longitude });
                 setMessage("Success! Your location has been sent to the nearest authorities.");
             } catch (err) {
                 setMessage(`Error: ${err.message}`);

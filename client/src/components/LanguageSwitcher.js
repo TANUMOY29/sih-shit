@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'react-bootstrap';
+import { useTranslation } from '../context/TranslationContext'; // <-- use your custom hook
 
 const languages = [
     { code: 'en', name: 'English' },
@@ -10,21 +10,25 @@ const languages = [
 ];
 
 export default function LanguageSwitcher() {
-    const { i18n } = useTranslation();
+    const { language, setLanguage } = useTranslation(); // from your custom provider
 
     const changeLanguage = (lng) => {
-        i18n.changeLanguage(lng);
+        setLanguage(lng); // updates context, translation API will be used
     };
 
     return (
         <Dropdown>
             <Dropdown.Toggle variant="secondary" id="dropdown-basic">
-                Language
+                {languages.find((lang) => lang.code === language)?.name || 'Language'}
             </Dropdown.Toggle>
 
             <Dropdown.Menu>
                 {languages.map((lang) => (
-                    <Dropdown.Item key={lang.code} onClick={() => changeLanguage(lang.code)}>
+                    <Dropdown.Item 
+                        key={lang.code} 
+                        onClick={() => changeLanguage(lang.code)}
+                        active={lang.code === language} // highlight current lang
+                    >
                         {lang.name}
                     </Dropdown.Item>
                 ))}

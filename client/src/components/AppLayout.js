@@ -2,7 +2,8 @@ import { Link, useNavigate, Outlet } from 'react-router-dom'; // 1. Import Outle
 import { useAuth } from '../context/authcontext';
 import { Navbar, Container, Nav, NavDropdown } from 'react-bootstrap';
 import LanguageSwitcher from './LanguageSwitcher';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../context/TranslationContext';
+
 import SOSButton from './SOSButton';
 
 export default function AppLayout() {

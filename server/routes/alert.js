@@ -1,24 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const LocationHistory = require('../models/LocationHistory');
+const Alert = require('../models/Alerts');
 
-// @route   POST api/location
-// @desc    Save a user's location point
+// @route   POST api/alerts
+// @desc    Create a new SOS alert
 // @access  Private
 router.post('/', auth, async (req, res) => {
     try {
         const { latitude, longitude } = req.body;
-
-        const newLocation = new LocationHistory({
-            tourist: req.tourist.id,
+        const newAlert = new Alert({
+            tourist_id: req.tourist.id,
             latitude,
-            longitude
+            longitude,
         });
-
-        const location = await newLocation.save();
-        res.json(location);
-
+        const alert = await newAlert.save();
+        res.json(alert);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
