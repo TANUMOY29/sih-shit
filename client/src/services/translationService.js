@@ -1,48 +1,45 @@
-// This service manages fetching translations from the Google Translate API and caching them.
-const API_KEY = process.env.REACT_APP_GOOGLE_TRANSLATE_API_KEY;
-const API_URL = `https://translation.googleapis.com/language/translate/v2`;
+// translationService.js
+import api from "./api"; // your axios/fetch wrapper
 
-// Cache to store fetched translations and avoid repeated API calls
-const cache = {};
+// In-memory cache
+const memoryCache = {};
 
-export const translateText = async (text, targetLanguage) => {
-    // English is the source, no need to translate
-    if (targetLanguage === 'en') {
-        return text;
-    }
+// Load cache from localStorage (if exists)
+const storedCache = localStorage.getItem("translations");
+if (storedCache) {
+  Object.assign(memoryCache, JSON.parse(storedCache));
+}
 
-    const cacheKey = `${targetLanguage}:${text}`;
-    // If we have already translated this text, return the cached version
-    if (cache[cacheKey]) {
-        return cache[cacheKey];
-    }
+function saveToLocalStorage() {
+  localStorage.setItem("translations", JSON.stringify(memoryCache));
+}
 
-    try {
-        const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                q: text,
-                target: targetLanguage,
-                format: 'text',
-            }),
-        });
+/**
+ * Get translation for a given key and language
+ * @param {string} text - Text key to translate
+ * @param {string} lang - Target language (e.g. "en", "bn")
+ */
+export async function translate(text, lang = "en") {
+  if (!text) return "";
 
-        if (!response.ok) {
-            throw new Error('Failed to translate text.');
-        }
+  // Check cache first
+  if (memoryCache[lang] && memoryCache[lang][text]) {
+    return memoryCache[lang][text];
+  }
 
-        const data = await response.json();
-        const translatedText = data.data.translations[0].translatedText;
+  try {
+    // Call your backend API
+    const res = await api.post("/translate", { text, targetLang: lang });
+    const translated = res.data?.translatedText || text;
 
-        // Save the new translation to our cache
-        cache[cacheKey] = translatedText;
-        return translatedText;
+    // Save to cache
+    if (!memoryCache[lang]) memoryCache[lang] = {};
+    memoryCache[lang][text] = translated;
+    saveToLocalStorage();
 
-    } catch (error) {
-        console.error("Translation error:", error);
-        return text; // Fallback to the original text if translation fails
-    }
-};
+    return translated;
+  } catch (err) {
+    console.error("Translation error:", err);
+    return text; // fallback
+  }
+}

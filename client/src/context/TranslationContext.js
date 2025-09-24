@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext } from 'react';
-import { translateText } from '../services/translationService';
+import { translate as translateText } from '../services/translationService';
 
 const TranslationContext = createContext();
 
